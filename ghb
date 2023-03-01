@@ -1,0 +1,51 @@
+#!/bin/bash
+set -eu
+set -o pipefail
+
+euid="$(id -u)"
+conf="/etc/ghb.conf"
+
+if (( $euid != 0 )); then
+  conf="$(realpath -e "/${HOME}/.ghb.conf")"
+fi
+
+test -e "${conf}" &&
+  source "${conf}"
+
+BACKUPDIR="${BACKUPDIR:=/var/backups/ghb}"
+AUTOUPDATE="${AUTOUPDATE:=1}"
+RSYNCCONF="${RSYNCCONF:=$(readlink -e rsync.conf)}"
+GITREMOTE="${GITREMOTE:=}"
+
+install --mode 0700 -d "${BACKUPDIR}"
+cd "${BACKUPDIR}"
+install --mode 0700 -d "files"
+test -d .git || {
+  git init
+}
+
+test -e "${RSYNCCONF}" &&
+  rsync -arHS \
+    --include-from="${RSYNCCONF}" \
+    --delete-excluded \
+    --exclude \* \
+    --exclude "${BACKUPDIR}/" \
+    / \
+    "${BACKUPDIR}/files"
+
+git add files
+git commit -nm . || true
+
+test -z "${GITREMOTE}" && exit 0
+
+remote="$(git remote | head -1)"
+if [[ ${remote} == "" ]]; then
+  git remote add origin "${GITREMOTE}"
+  remote=orogin
+else
+  remoteurl="$(git config --get remote.${remote}.url)"
+  if [[ "${remoteurl}" != "${GITREMOTE}" ]]; then
+    git remote set-url "${remote}" "${GITREMOTE}"
+  fi
+fi
+git push -u "${remote}" master
