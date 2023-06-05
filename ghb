@@ -41,7 +41,7 @@ test -z "${GITREMOTE}" && exit 0
 remote="$(git remote | head -1)"
 if [[ ${remote} == "" ]]; then
   git remote add origin "${GITREMOTE}"
-  remote=orogin
+  remote=origin
 else
   remoteurl="$(git config --get remote.${remote}.url)"
   if [[ "${remoteurl}" != "${GITREMOTE}" ]]; then
