@@ -4,18 +4,21 @@ set -o pipefail
 
 euid="$(id -u)"
 conf="/etc/ghb.conf"
+rsync="/etc/ghb.rsync"
 
 if (( $euid != 0 )); then
   conf="$(realpath -e "/${HOME}/.ghb.conf")"
+  rsync="$(realpath -e "/${HOME}/.ghb.rsync")"
 fi
 
 test -e "${conf}" &&
   source "${conf}"
 
 BACKUPDIR="${BACKUPDIR:=/var/backups/ghb}"
-AUTOUPDATE="${AUTOUPDATE:=1}"
-RSYNCCONF="${RSYNCCONF:=$(readlink -e rsync.conf)}"
 GITREMOTE="${GITREMOTE:=}"
+RSYNCCONF="${RSYNCCONF:=$rsync}"
+test -r "${RSYNCCONF}" ||
+  RSYNCCONF="$(readlink -e rsync.conf)"
 
 install --mode 0700 -d "${BACKUPDIR}"
 cd "${BACKUPDIR}"
